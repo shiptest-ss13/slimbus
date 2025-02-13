@@ -106,6 +106,40 @@ class Stat
         break;
 
       case 'associative':
+        if ($tmp->key_name == 'time_dilation_current') {
+          foreach ($stat as $s) {
+            $tmp->rounds[$s->round_id] = [];
+            $tmp->rounds[$s->round_id]['start'] = $s->data[1]['datetime'];
+            $tmp->rounds[$s->round_id]['count'] = 0;
+            $tmp->rounds[$s->round_id]['total'] = 0;
+            foreach ($s->data as $y) {
+              $tmp->rounds[$s->round_id]['count'] += 1;
+              $tmp->rounds[$s->round_id]['total'] += $y['current'];
+            }
+            $tmp->rounds[$s->round_id]['avg'] = $tmp->rounds[$s->round_id]['total'] / $tmp->rounds[$s->round_id]['count'];
+          }
+
+          $tmp->chartdata = new stdClass;
+          $running = [];
+          ksort($tmp->rounds);
+          $rounds = $tmp->rounds;
+          foreach ($rounds as &$round) {
+            array_unshift($running, $round['avg']);
+            $newcount = count($running);
+
+            $tmp->chartdata->datetimes[] = $round['start'];
+            $tmp->chartdata->avg[] = round(array_sum($running) / $newcount, 2);
+            $tmp->chartdata->current[] = round($round['avg'], 2);
+
+            if ($newcount > 5) {
+              array_pop($running);
+            }
+          }
+
+          $tmp->chartdata = json_encode($tmp->chartdata);
+          break;
+        }
+
         $data = [];
         foreach ($stat as $s) {
           $tmp->rounds[$s->round_id] = count($s->data);
